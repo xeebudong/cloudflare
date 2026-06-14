@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界杯各大洲战力天梯图 | 2002–2022</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="data/worldcup_data.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>世界杯各大洲<span>战力天梯图</span> <small style="font-size:0.65em;color:var(--text-light);font-weight:normal;">2002–2022</small></h1>
+  <nav>
+    <button class="active" data-panel="heatmap">胜率热图</button>
+    <button data-panel="stats">详细统计</button>
+    <button data-panel="search">比赛查询</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ================================================================ -->
+  <!-- PANEL 1: HEATMAP -->
+  <!-- ================================================================ -->
+  <section id="panel-heatmap" class="panel active">
+    <div class="card">
+      <h2>各大洲相互胜率热图</h2>
+      <div class="year-selector" id="hm-years"></div>
+      <div id="heatmap-chart"></div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <!-- PANEL 2: STATS TABLE -->
+  <!-- ================================================================ -->
+  <section id="panel-stats" class="panel">
+    <div class="two-col">
+      <!-- Left: Selectors + Table -->
+      <div class="card">
+        <h2>各大洲对阵统计</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:1rem;align-items:center;margin-bottom:0.8rem;">
+          <div>
+            <span style="font-size:0.85rem;color:var(--text-light);">主队大洲：</span>
+            <select id="stats-cont" style="font-family:inherit;font-size:0.9rem;padding:0.35rem 0.6rem;border:1px solid var(--border);border-radius:6px;"></select>
+          </div>
+          <div>
+            <span style="font-size:0.85rem;color:var(--text-light);">届次：</span>
+            <select id="stats-year" style="font-family:inherit;font-size:0.9rem;padding:0.35rem 0.6rem;border:1px solid var(--border);border-radius:6px;"></select>
+          </div>
+        </div>
+        <p style="font-size:0.8rem;color:var(--text-light);margin-bottom:0.5rem;">选择具体届次后，点击 ▶ 可展开查看小组赛/淘汰赛各轮次数据</p>
+        <div class="table-wrapper">
+          <table class="stats-table" id="stats-table">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Right: Summary overview -->
+      <div class="card">
+        <h2>大洲胜平负总览（所有届次汇总）</h2>
+        <div class="table-wrapper">
+          <table class="stats-table" id="overview-table">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p style="margin-top:1rem;font-size:0.8rem;color:var(--text-light);">
+          * 数据覆盖 2002-2022 六届世界杯共 384 场比赛<br>
+          * 比赛按主队大洲视角统计（同大洲内战统一归入主队侧）
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <!-- PANEL 3: MATCH SEARCH -->
+  <!-- ================================================================ -->
+  <section id="panel-search" class="panel">
+    <div class="card">
+      <h2>比赛结果查询</h2>
+      <div class="filter-row">
+        <select id="f-year"><option value="">全部届次</option></select>
+        <select id="f-cont1"><option value="">All</option></select>
+        <select id="f-cont2"><option value="">All</option></select>
+        <button id="btn-search">查询</button>
+        <button id="btn-reset" class="reset">重置</button>
+      </div>
+      <div class="match-count" id="match-count"></div>
+      <div class="table-wrapper">
+        <table class="match-table" id="match-table">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  数据来源：FIFA 官方比赛数据 · FIFA 世界排名（2002–2022） · 博彩赔率（2018–2022）<br>
+  共 384 场比赛 · 六大洲 · 六届世界杯
+</footer>
+
+<script src="js/app.js"></script>
+</body>
+</html>

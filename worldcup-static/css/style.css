@@ -1,0 +1,270 @@
+/* worldcup-static/css/style.css — Palatino Linotype, Economist-inspired palette */
+:root {
+  --bg: #F2EFE9;
+  --card-bg: #FFFFFF;
+  --text: #2C3E50;
+  --text-light: #6B7B8D;
+  --accent: #D10A30;
+  --blue: #2E6B8F;
+  --teal: #00897B;
+  --gold: #C8A84E;
+  --orange: #E87722;
+  --win: #3A7D44;
+  --draw: #C8A84E;
+  --lose: #C0392B;
+  --border: #E0DCD3;
+  --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  --radius: 8px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { font-size: 15px; }
+body {
+  font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, 'Songti SC', 'SimSun', serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Header */
+header {
+  background: var(--card-bg);
+  border-bottom: 2px solid var(--border);
+  padding: 1.2rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+header h1 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+header h1 span { color: var(--accent); }
+nav { display: flex; gap: 0.3rem; }
+nav button {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.55rem 1.4rem;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-light);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+nav button:hover { border-color: var(--accent); color: var(--accent); }
+nav button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* Main content */
+main { max-width: 1400px; margin: 0 auto; padding: 1.8rem 2rem; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* Cards */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+.card h2 {
+  font-size: 1.2rem;
+  color: var(--text);
+  margin-bottom: 1rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Year selector pills */
+.year-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.2rem;
+  align-items: center;
+}
+.year-selector .label {
+  font-size: 0.9rem;
+  color: var(--text-light);
+  margin-right: 0.5rem;
+}
+.year-pill {
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-light);
+  cursor: pointer;
+  border-radius: 20px;
+  transition: all 0.15s;
+}
+.year-pill:hover { border-color: var(--accent); color: var(--accent); }
+.year-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* Plotly chart container */
+#heatmap-chart { width: 100%; min-height: 520px; }
+
+/* Two-column layout */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+/* Continent selector buttons */
+.cont-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.cont-pill {
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-light);
+  cursor: pointer;
+  border-radius: 20px;
+  transition: all 0.15s;
+}
+.cont-pill:hover { border-color: var(--blue); color: var(--blue); }
+.cont-pill.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+/* Stats table */
+.table-wrapper { overflow-x: auto; margin-top: 0.5rem; }
+table.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+table.stats-table th, table.stats-table td {
+  padding: 0.5rem 0.7rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+table.stats-table th {
+  background: #f8f7f4;
+  font-weight: 600;
+  color: var(--text);
+  position: sticky;
+  top: 0;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+table.stats-table tbody tr:hover { background: #fdfcf8; }
+table.stats-table .summary-row {
+  font-weight: bold;
+  background: #f8f7f4;
+  border-top: 2px solid var(--text);
+}
+table.stats-table .win  { color: var(--win); font-weight: 600; }
+table.stats-table .draw { color: var(--draw); font-weight: 600; }
+table.stats-table .lose { color: var(--lose); font-weight: 600; }
+table.stats-table .expand-btn {
+  cursor: pointer;
+  color: var(--blue);
+  font-size: 0.8rem;
+  user-select: none;
+}
+table.stats-table .expand-btn:hover { color: var(--accent); }
+table.stats-table tr.stage-row { display: none; background: #fdfcf7; }
+table.stats-table tr.stage-row.visible { display: table-row; }
+table.stats-table tr.stage-row td { font-size: 0.8rem; color: var(--text-light); padding-left: 1.5rem; }
+
+/* Match search */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.filter-row select, .filter-row input {
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text);
+  outline: none;
+}
+.filter-row select:focus, .filter-row input:focus { border-color: var(--blue); }
+.filter-row button {
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.45rem 1.2rem;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.filter-row button:hover { background: #1e5370; }
+.filter-row button.reset { background: var(--text-light); }
+.filter-row button.reset:hover { background: var(--text); }
+
+.match-count { font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.5rem; }
+
+table.match-table {
+  width: 100%; border-collapse: collapse; font-size: 0.85rem;
+}
+table.match-table th, table.match-table td {
+  padding: 0.45rem 0.6rem; text-align: center; border-bottom: 1px solid var(--border);
+}
+table.match-table th { background: #f8f7f4; font-weight: 600; font-size: 0.8rem; white-space: nowrap; }
+table.match-table tbody tr:hover { background: #fdfcf8; }
+table.match-table .result-win { background: #e8f5e9; }
+table.match-table .result-draw { background: #fef9e7; }
+table.match-table .result-lose { background: #fdecea; }
+.odds-highlight { color: var(--accent); font-weight: 600; }
+
+/* Tabs for stats view: by-year | by-stage */
+.sub-tabs { display: flex; gap: 0.3rem; margin-bottom: 0.8rem; }
+.sub-tab {
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-light);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+.sub-tab:hover { border-color: var(--teal); color: var(--teal); }
+.sub-tab.active { background: var(--teal); color: #fff; border-color: var(--teal); }
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-light);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--border);
+  margin-top: 2rem;
+}
+
+/* Loading */
+.loading { text-align:center; padding:3rem; color:var(--text-light); font-style:italic; }
+
+/* Responsive */
+@media (max-width: 700px) {
+  header { padding: 1rem; }
+  header h1 { font-size: 1.2rem; }
+  nav button { font-size: 0.8rem; padding: 0.4rem 0.8rem; }
+  main { padding: 1rem; }
+  .card { padding: 1rem; }
+}
