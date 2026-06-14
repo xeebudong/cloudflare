@@ -1,0 +1,19 @@
+# BT Downloader - Cloudflare Worker Configuration
+# Deploy: npx wrangler deploy
+# Dev:    npx wrangler dev
+
+name = "bt-downloader"
+main = "_worker.js"
+compatibility_date = "2025-06-01"
+
+# Static assets: serve files from /public directory
+[assets]
+directory = "./public"
+
+# Optional: custom domain routing
+# routes = [
+#   { pattern = "bt.example.com", custom_domain = true }
+# ]
+
+[observability]
+enabled = true

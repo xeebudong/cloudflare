@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BT Downloader - P2P 种子下载器</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #09090b;
+      --bg-card: rgba(255,255,255,0.03);
+      --border: rgba(255,255,255,0.06);
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --accent: #a855f7;
+      --accent2: #06b6d4;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Animated background */
+    .bg-orbs {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .bg-orbs::before, .bg-orbs::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.3;
+      animation: float 20s ease-in-out infinite;
+    }
+    .bg-orbs::before {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(168,85,247,0.4), transparent 70%);
+      top: -200px; left: -100px;
+    }
+    .bg-orbs::after {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(6,182,212,0.35), transparent 70%);
+      bottom: -150px; right: -100px;
+      animation-delay: -10s;
+    }
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      25% { transform: translate(60px, -40px) scale(1.08); }
+      50% { transform: translate(-30px, 30px) scale(0.95); }
+      75% { transform: translate(-50px, -20px) scale(1.05); }
+    }
+
+    /* Grid pattern overlay */
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+    }
+
+    /* Main container */
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(168,85,247,0.25);
+    }
+    .logo svg { width: 32px; height: 32px; }
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fafafa 0%, #a1a1aa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header p {
+      margin-top: 8px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* Input card */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transition: border-color 0.3s;
+    }
+    .card:hover { border-color: rgba(255,255,255,0.1); }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      padding: 4px;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .tab.active {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+    }
+    .tab:hover:not(.active) { color: var(--text); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .input-row {
+      display: flex;
+      gap: 12px;
+    }
+    .input-row input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: rgba(0,0,0,0.3);
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-row input:focus { border-color: var(--accent); }
+    .input-row input::placeholder { color: #52525b; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      color: white;
+      box-shadow: 0 4px 16px rgba(168,85,247,0.3);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(168,85,247,0.4); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-ghost {
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.08); }
+
+    .btn-danger {
+      background: rgba(239,68,68,0.15);
+      color: var(--danger);
+      border: 1px solid rgba(239,68,68,0.2);
+    }
+    .btn-danger:hover { background: rgba(239,68,68,0.25); }
+
+    .btn-xs { padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-sm);
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(168,85,247,0.05);
+    }
+    .drop-zone svg { width: 40px; height: 40px; color: var(--text-muted); margin-bottom: 12px; }
+    .drop-zone p { color: var(--text-muted); font-size: 0.875rem; }
+    .drop-zone .highlight { color: var(--accent); font-weight: 600; }
+    #file-input { display: none; }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      backdrop-filter: blur(20px);
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-value.speed { color: var(--accent2); }
+    .stat-value.up { color: var(--accent); }
+    .stat-value.peers { color: var(--success); }
+
+    /* Progress section */
+    .progress-section { margin-bottom: 20px; }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .progress-title { font-size: 0.875rem; font-weight: 600; }
+    .progress-percent { font-size: 0.875rem; color: var(--accent); font-weight: 700; }
+
+    .progress-bar-outer {
+      height: 8px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-bar-inner {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+    .progress-bar-inner.done {
+      background: linear-gradient(90deg, #22c55e, #10b981);
+    }
+
+    /* Torrent info */
+    .torrent-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+    .torrent-meta {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* File list */
+    .file-list { max-height: 400px; overflow-y: auto; }
+    .file-list::-webkit-scrollbar { width: 6px; }
+    .file-list::-webkit-scrollbar-track { background: transparent; }
+    .file-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-radius: 8px;
+      transition: background 0.15s;
+    }
+    .file-item:hover { background: rgba(255,255,255,0.03); }
+    .file-item + .file-item { border-top: 1px solid var(--border); }
+
+    .file-info { flex: 1; min-width: 0; margin-right: 12px; }
+    .file-name {
+      font-size: 0.875rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-size { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    .file-progress {
+      font-size: 0.75rem;
+      color: var(--accent2);
+      font-weight: 600;
+      margin-right: 12px;
+      white-space: nowrap;
+    }
+    .file-progress.done { color: var(--success); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+    }
+    .empty-state svg { width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.4; }
+    .empty-state p { font-size: 0.875rem; }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      animation: slideIn 0.3s ease;
+      max-width: 380px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .toast.error { background: #451a1a; color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+    .toast.success { background: #0a2e1a; color: #6ee7b7; border: 1px solid rgba(34,197,94,0.3); }
+    .toast.info { background: #0a1a2e; color: #7dd3fc; border: 1px solid rgba(6,182,212,0.3); }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      margin-top: 48px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .input-row { flex-direction: column; }
+      .header h1 { font-size: 1.5rem; }
+      .app { padding: 24px 16px 60px; }
+    }
+
+    .hidden { display: none !important; }
+
+    /* Pulse animation for active downloads */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .pulse { animation: pulse 2s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+
+  <div class="bg-orbs"></div>
+  <div class="grid-overlay"></div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </div>
+      <h1>BT Downloader</h1>
+      <p>基于 WebTorrent 的 P2P 种子下载器，直接在浏览器中运行</p>
+    </header>
+
+    <!-- Input Card -->
+    <div class="card" id="input-card">
+      <div class="tabs">
+        <button class="tab active" data-tab="magnet">🧲 磁力链接</button>
+        <button class="tab" data-tab="torrent">📁 种子文件</button>
+      </div>
+
+      <div class="tab-content active" id="tab-magnet">
+        <div class="input-row">
+          <input type="text" id="magnet-input" placeholder="粘贴磁力链接 magnet:?xt=urn:btih:...">
+          <button class="btn btn-primary" id="btn-add-magnet">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            开始下载
+          </button>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-torrent">
+        <div class="drop-zone" id="drop-zone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <polyline points="9 15 12 12 15 15"/>
+          </svg>
+          <p>拖拽 <span class="highlight">.torrent</span> 文件到此处，或 <span class="highlight">点击选择</span></p>
+          <input type="file" id="file-input" accept=".torrent">
+        </div>
+      </div>
+    </div>
+
+    <!-- Download Area -->
+    <div id="download-area" class="hidden">
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">下载速度</div>
+          <div class="stat-value speed" id="stat-download">0 B/s</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">上传速度</div>
+          <div class="stat-value up" id="stat-upload">0 B/s</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">连接节点</div>
+          <div class="stat-value peers" id="stat-peers">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">总进度</div>
+          <div class="stat-value" id="stat-progress">0%</div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="card progress-section">
+        <div class="torrent-name" id="torrent-name">-</div>
+        <div class="torrent-meta" id="torrent-meta"></div>
+        <div style="margin-top: 16px;">
+          <div class="progress-header">
+            <span class="progress-title">下载进度</span>
+            <span class="progress-percent" id="progress-percent">0%</span>
+          </div>
+          <div class="progress-bar-outer">
+            <div class="progress-bar-inner" id="progress-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- File List -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="font-size:1rem;font-weight:600;">文件列表</h2>
+          <button class="btn btn-danger btn-xs" id="btn-remove">移除任务</button>
+        </div>
+        <div class="file-list" id="file-list">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+            <p>等待文件信息...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History hint -->
+    <div id="no-tasks" class="card">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <p>输入磁力链接或上传种子文件开始下载</p>
+        <p style="font-size:0.75rem;margin-top:4px;color:#52525b;">支持所有常见的 BT 种子和磁力链接格式</p>
+      </div>
+    </div>
+
+    <footer class="footer">
+      基于 WebTorrent 构建 · 所有数据传输均为 P2P 
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/webtorrent@2/hybrid/webtorrent.min.js"></script>
+  <script>
+    (function() {
+      // ── DOM refs ──────────────────────────────────
+      const $ = (sel) => document.querySelector(sel);
+      const $$ = (sel) => document.querySelectorAll(sel);
+
+      const magnetInput = $('#magnet-input');
+      const btnAddMagnet = $('#btn-add-magnet');
+      const dropZone = $('#drop-zone');
+      const fileInput = $('#file-input');
+      const downloadArea = $('#download-area');
+      const noTasks = $('#no-tasks');
+      const fileList = $('#file-list');
+      const btnRemove = $('#btn-remove');
+      const toastContainer = $('#toast-container');
+
+      // Stats
+      const statDownload = $('#stat-download');
+      const statUpload = $('#stat-upload');
+      const statPeers = $('#stat-peers');
+      const statProgress = $('#stat-progress');
+      const progressBar = $('#progress-bar');
+      const progressPercent = $('#progress-percent');
+      const torrentName = $('#torrent-name');
+      const torrentMeta = $('#torrent-meta');
+
+      // ── State ─────────────────────────────────────
+      let client = null;
+      let currentTorrent = null;
+      let updateTimer = null;
+
+      // ── Init WebTorrent ──────────────────────────
+      function getClient() {
+        if (!client) {
+          client = new WebTorrent();
+        }
+        return client;
+      }
+
+      // ── Toast ─────────────────────────────────────
+      function toast(message, type) {
+        type = type || 'info';
+        const el = document.createElement('div');
+        el.className = 'toast ' + type;
+        el.textContent = message;
+        toastContainer.appendChild(el);
+        setTimeout(function() {
+          el.style.transition = 'opacity 0.3s, transform 0.3s';
+          el.style.opacity = '0';
+          el.style.transform = 'translateX(100%)';
+          setTimeout(function() { el.remove(); }, 300);
+        }, 3500);
+      }
+
+      // ── Format utils ─────────────────────────────
+      function formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        var k = 1024;
+        var sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        var i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+      }
+
+      function formatSpeed(bytesPerSec) {
+        return formatBytes(bytesPerSec) + '/s';
+      }
+
+      // ── Add magnet ────────────────────────────────
+      function addMagnet() {
+        var uri = magnetInput.value.trim();
+        if (!uri) {
+          toast('请输入磁力链接', 'error');
+          return;
+        }
+        if (uri.indexOf('magnet:') !== 0 && uri.length !== 40) {
+          toast('无效的磁力链接格式，应以 magnet:? 开头', 'error');
+          return;
+        }
+        startTorrent(uri);
+      }
+
+      // ── Add torrent file ─────────────────────────
+      function addTorrentFile(file) {
+        if (!file) return;
+        if (!file.name.endsWith('.torrent')) {
+          toast('请选择 .torrent 格式的种子文件', 'error');
+          return;
+        }
+        startTorrent(file);
+      }
+
+      // ── Start torrent ────────────────────────────
+      function startTorrent(input) {
+        // Remove previous torrent
+        if (currentTorrent) {
+          getClient().remove(currentTorrent);
+          currentTorrent = null;
+        }
+
+        var clientInstance = getClient();
+        btnAddMagnet.disabled = true;
+        toast('正在连接种子网络...', 'info');
+
+        clientInstance.add(input, function onTorrent(torrent) {
+          currentTorrent = torrent;
+          btnAddMagnet.disabled = false;
+          magnetInput.value = '';
+          fileInput.value = '';
+
+          // Show download area
+          downloadArea.classList.remove('hidden');
+          noTasks.classList.add('hidden');
+
+          // Torrent info
+          torrentName.textContent = torrent.name || '未知种子';
+          torrentMeta.textContent =
+            '大小: ' + formatBytes(torrent.length) +
+            ' · 文件数: ' + torrent.files.length;
+
+          // Render file list
+          renderFiles(torrent);
+
+          // Start stats update
+          startStatsUpdate(torrent);
+
+          // Events
+          torrent.on('download', function() {
+            updateStats(torrent);
+            updateFileProgress(torrent);
+          });
+
+          torrent.on('upload', function() {
+            updateStats(torrent);
+          });
+
+          torrent.on('done', function() {
+            updateStats(torrent);
+            updateFileProgress(torrent);
+            progressBar.classList.add('done');
+            toast('下载完成！' + torrent.name, 'success');
+          });
+
+          torrent.on('error', function(err) {
+            toast('下载错误: ' + err.message, 'error');
+            console.error('Torrent error:', err);
+          });
+
+          torrent.on('warning', function(warn) {
+            console.warn('Torrent warning:', warn);
+          });
+
+          toast('已连接到 ' + torrent.numPeers + ' 个节点', 'success');
+        });
+      }
+
+      // ── Remove torrent ───────────────────────────
+      function removeTorrent() {
+        if (currentTorrent) {
+          getClient().remove(currentTorrent);
+          currentTorrent = null;
+        }
+        stopStatsUpdate();
+        downloadArea.classList.add('hidden');
+        noTasks.classList.remove('hidden');
+        progressBar.classList.remove('done');
+        progressBar.style.width = '0%';
+        btnAddMagnet.disabled = false;
+        toast('已移除下载任务', 'info');
+      }
+
+      // ── Stats ────────────────────────────────────
+      function startStatsUpdate(torrent) {
+        stopStatsUpdate();
+        updateTimer = setInterval(function() { updateStats(torrent); }, 500);
+      }
+
+      function stopStatsUpdate() {
+        if (updateTimer) {
+          clearInterval(updateTimer);
+          updateTimer = null;
+        }
+      }
+
+      function updateStats(torrent) {
+        statDownload.textContent = formatSpeed(torrent.downloadSpeed);
+        statUpload.textContent = formatSpeed(torrent.uploadSpeed);
+        statPeers.textContent = torrent.numPeers;
+
+        var pct = Math.round(torrent.progress * 100);
+        statProgress.textContent = pct + '%';
+        progressPercent.textContent = pct + '%';
+        progressBar.style.width = pct + '%';
+
+        if (torrent.progress >= 1) {
+          statDownload.textContent = '已完成';
+          progressBar.classList.add('done');
+        }
+      }
+
+      function updateFileProgress(torrent) {
+        torrent.files.forEach(function(file, i) {
+          var pctEl = document.getElementById('file-pct-' + i);
+          if (pctEl) {
+            var pct = Math.round(file.progress * 100);
+            pctEl.textContent = pct + '%';
+            if (file.progress >= 1) {
+              pctEl.classList.add('done');
+            }
+          }
+        });
+      }
+
+      // ── Render files ─────────────────────────────
+      function renderFiles(torrent) {
+        fileList.innerHTML = '';
+        torrent.files.forEach(function(file, i) {
+          var row = document.createElement('div');
+          row.className = 'file-item';
+
+          var ext = file.name.split('.').pop().toLowerCase();
+          var icon = '📄';
+          if (/^(mp4|mkv|avi|mov|wmv|flv|webm)$/i.test(ext)) icon = '🎬';
+          else if (/^(mp3|wav|flac|aac|ogg|wma)$/i.test(ext)) icon = '🎵';
+          else if (/^(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(ext)) icon = '🖼️';
+          else if (/^(zip|rar|7z|tar|gz)$/i.test(ext)) icon = '📦';
+          else if (/^(exe|msi|dmg|apk)$/i.test(ext)) icon = '⚙️';
+          else if (/^(pdf)$/i.test(ext)) icon = '📕';
+          else if (/^(txt|md|json|xml|yaml|yml)$/i.test(ext)) icon = '📝';
+
+          row.innerHTML =
+            '<div class="file-info">' +
+              '<div class="file-name">' + icon + ' ' + escapeHtml(file.name) + '</div>' +
+              '<div class="file-size">' + formatBytes(file.length) + '</div>' +
+            '</div>' +
+            '<span class="file-progress" id="file-pct-' + i + '">' + Math.round(file.progress * 100) + '%</span>' +
+            '<button class="btn btn-ghost btn-xs btn-download-file" data-index="' + i + '">下载</button>';
+
+          fileList.appendChild(row);
+        });
+
+        // Bind download buttons
+        fileList.querySelectorAll('.btn-download-file').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var idx = parseInt(this.getAttribute('data-index'));
+            downloadFile(torrent.files[idx]);
+          });
+        });
+      }
+
+      function downloadFile(file) {
+        file.getBlobURL(function(err, url) {
+          if (err) {
+            toast('获取下载链接失败: ' + err.message, 'error');
+            return;
+          }
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = file.name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          toast('开始下载: ' + file.name, 'success');
+        });
+      }
+
+      function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+      }
+
+      // ── Event bindings ───────────────────────────
+      btnAddMagnet.addEventListener('click', addMagnet);
+      magnetInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') addMagnet();
+      });
+
+      // Tab switching
+      $$('.tab').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          var target = this.getAttribute('data-tab');
+          $$('.tab').forEach(function(t) { t.classList.remove('active'); });
+          this.classList.add('active');
+          $$('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+          $('#tab-' + target).classList.add('active');
+        });
+      });
+
+      // File drop zone
+      dropZone.addEventListener('click', function() { fileInput.click(); });
+      dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+      });
+      dropZone.addEventListener('dragleave', function() {
+        dropZone.classList.remove('drag-over');
+      });
+      dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        var files = e.dataTransfer.files;
+        if (files.length > 0) addTorrentFile(files[0]);
+      });
+      fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) addTorrentFile(this.files[0]);
+      });
+
+      btnRemove.addEventListener('click', function() {
+        if (confirm('确定要移除当前下载任务吗？')) {
+          removeTorrent();
+        }
+      });
+
+      // ── Paste magnet from clipboard ──────────────
+      document.addEventListener('paste', function(e) {
+        var text = (e.clipboardData || window.clipboardData).getData('text');
+        if (text && text.indexOf('magnet:') === 0) {
+          if (document.activeElement === magnetInput) return;
+          magnetInput.value = text;
+          magnetInput.focus();
+          toast('已识别磁力链接，点击按钮开始下载', 'info');
+        }
+      });
+
+      // ── Cleanup on page unload ───────────────────
+      window.addEventListener('beforeunload', function() {
+        if (currentTorrent && currentTorrent.progress < 1) {
+          // Browser will show its own confirmation
+        }
+        if (client) {
+          client.destroy(function() {});
+        }
+        stopStatsUpdate();
+      });
+
+    })();
+  </script>
+</body>
+</html>
