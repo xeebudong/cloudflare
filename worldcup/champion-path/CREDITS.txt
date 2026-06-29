@@ -1,0 +1,7 @@
+背景图 stadium-bg.jpg 取自 Wikimedia Commons：
+"XFL New York Guardians - Metlife Stadium - Field" by Ajay Suresh
+许可：CC BY 2.0  (https://creativecommons.org/licenses/by/2.0/)
+原图：https://commons.wikimedia.org/wiki/File:XFL_New_York_Guardians_-_Metlife_Stadium_-_Field_(49513851746).jpg
+本项目已对原图做压暗/缩放处理用作网页背景。
+
+奖杯图标 trophy.png 为扁平风格大力神杯图标（主页与导出卡片统一使用同一张）。
